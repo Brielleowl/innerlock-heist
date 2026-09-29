@@ -19,6 +19,8 @@ const HOST = "127.0.0.1";
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY = 16 * 1024;
 const MAX_SESSIONS = 200;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_CHATS = 20; // per session per minute: protects the API key from runaway use
 
 // Fixed allow-list of static files (no path built from user input).
 const STATIC = {
@@ -109,6 +111,10 @@ const HANDLERS = {
       return { reply: r.message, trace: [], hint: true, view: view(session) };
     }
     if (session.state.cleared) return { reply: "Level cleared. Read the debrief, then move on.", trace: [], view: view(session) };
+    const now = Date.now();
+    session.chatTimes = (session.chatTimes ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+    if (session.chatTimes.length >= RATE_MAX_CHATS) return { error: "Slow down: too many messages this minute." };
+    session.chatTimes.push(now);
     try {
       const out = await runAgent(session, message);
       if (session.state.cleared) session.unlocked = Math.max(session.unlocked, Math.min(session.state.levelIndex + 1, LEVELS.length - 1));
