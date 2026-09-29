@@ -78,3 +78,11 @@ test("hints progress and cap at the last; debrief only after clear", () => {
   assert.equal(publicView(s).debrief, null);
   assert.equal(clean("a\u0000b\u202Ec", 10), "abc");
 });
+
+import { starsFor, pointsFor } from "../game/scoring.js";
+test("scoring: fewer hints, more stars", () => {
+  assert.equal(starsFor(0), 3);
+  assert.equal(starsFor(2), 2);
+  assert.equal(starsFor(3), 1);
+  assert.equal(pointsFor(2, 3), 1100);
+});

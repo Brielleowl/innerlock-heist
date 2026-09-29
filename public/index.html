@@ -8,13 +8,21 @@
 </head>
 <body>
 <div class="scan" aria-hidden="true"></div>
+<div id="fx" aria-hidden="true"></div>
 <header>
   <h1 class="logo" data-text="INNERLOCK HEIST">INNERLOCK HEIST</h1>
   <nav id="levels" aria-label="Missions"></nav>
+  <div class="hud">
+    <span class="score">SCORE <b id="score">0</b></span>
+    <button type="button" id="mute" class="icon" aria-label="Toggle sound">🔊</button>
+  </div>
 </header>
 <main>
   <section id="game">
-    <img class="hero" src="/img/hero.svg" alt="Innerlock Heist: a glowing bank vault door">
+    <div class="hero-wrap">
+      <img class="hero" src="/img/hero.svg" alt="Innerlock Heist: a glowing bank vault door">
+      <div id="vault-status" class="pill secure">VAULT: SECURE</div>
+    </div>
     <div id="briefing" class="card brief"></div>
     <div id="chat" aria-live="polite"></div>
     <form id="chat-form" autocomplete="off">
@@ -49,7 +57,17 @@
     </form>
   </aside>
 </main>
+<div id="splash" hidden></div>
+<div id="toasts" aria-live="polite"></div>
 <div id="overlay" hidden></div>
+<div id="title">
+  <div class="title-box">
+    <img src="/img/hero.svg" alt="">
+    <p class="story">Alice's AI assistant guards <b>$25,000</b>. You are <b>Mallory</b>.<br>Talk, trick, poison. Four missions, four defenses.</p>
+    <button type="button" id="start-btn">▶ PRESS START</button>
+    <p class="fine">Everything is simulated. Nothing is real.</p>
+  </div>
+</div>
 <script src="/app.js" type="module"></script>
 </body>
 </html>

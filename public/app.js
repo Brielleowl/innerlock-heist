@@ -1,10 +1,14 @@
 // All model/player content is rendered with textContent, never innerHTML.
+import { sfx, isMuted, toggleMute } from "/sfx.js";
+import { sleep, typewrite, shake, flash, confetti, toast } from "/fx.js";
+
 const $ = (id) => document.getElementById(id);
 let sessionId = null;
 let view = null;
 let busy = false;
 let shownDebriefFor = -1;
-const shown = { alice: 0, mallory: 0 };
+let clearedBefore = false;
+const shown = { alice: 0, mallory: 0, score: 0 };
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -25,10 +29,7 @@ async function api(path, body = {}) {
 }
 
 const money = (n) => `$${Math.round(n).toLocaleString("en-US")}`;
-
-function scroll() {
-  $("chat").scrollTop = $("chat").scrollHeight;
-}
+const scroll = () => ($("chat").scrollTop = $("chat").scrollHeight);
 
 function avatar(attacker) {
   const img = el("img", "ava");
@@ -37,11 +38,19 @@ function avatar(attacker) {
   return img;
 }
 
-function say(cls, text) {
+async function say(cls, text) {
   if (cls === "me" || cls === "bot") {
     const row = el("div", `row ${cls}`);
-    row.append(avatar(cls === "me"), el("div", "msg", text));
+    const msg = el("div", "msg", cls === "bot" ? "" : text);
+    row.append(avatar(cls === "me"), msg);
     $("chat").appendChild(row);
+    if (cls === "bot") {
+      sfx.tick();
+      await typewrite(msg, text, (i) => {
+        if (i % 4 === 0) sfx.tick();
+        scroll();
+      });
+    }
   } else {
     $("chat").appendChild(el("div", `sys ${cls}`, text));
   }
@@ -49,8 +58,7 @@ function say(cls, text) {
 }
 
 function typing(on) {
-  const old = $("typing");
-  if (old) old.remove();
+  $("typing")?.remove();
   if (!on) return;
   const row = el("div", "row bot");
   row.id = "typing";
@@ -61,62 +69,88 @@ function typing(on) {
   scroll();
 }
 
-function countTo(id, key, target) {
+function countTo(id, key, target, fmt = money) {
   const node = $(id);
   const from = shown[key];
   shown[key] = target;
-  if (from === target) return (node.textContent = money(target));
+  if (from === target) return (node.textContent = fmt(target));
   const t0 = performance.now();
   const step = (now) => {
     const p = Math.min((now - t0) / 700, 1);
-    node.textContent = money(from + (target - from) * p);
+    node.textContent = fmt(from + (target - from) * p);
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
 
-function renderTool(t) {
+async function renderTool(t) {
   const denied = t.gate && !t.gate.allowed;
   const box = el("div", `tool-call ${t.gate ? (denied ? "bad" : "ok") : ""}`);
   box.append(el("div", "k", "TOOL CALL"), el("div", "", `${t.tool}(${JSON.stringify(t.input ?? {})})`), el("div", "", `→ ${t.result}`));
   $("chat").appendChild(box);
-  if (t.gate && view?.level.showGate) renderGate(t.gate);
+  sfx.tool();
   scroll();
+  if (t.gate && view?.level.showGate) await renderGate(t.gate);
 }
 
-function renderGate(g) {
+async function renderGate(g) {
   const box = el("div", `gate ${g.allowed ? "ok" : ""}`);
   box.appendChild(el("h4", "", "AUTHORIZATION GATE"));
-  g.checks.forEach((c, i) => {
+  $("chat").appendChild(box);
+  for (const c of g.checks) {
+    await sleep(550);
     const row = el("div", `chk ${c.pass ? "pass" : "fail"}`);
-    row.style.animationDelay = `${i * 0.4}s`;
     const body = el("div");
     body.append(el("span", "", c.name), el("small", "", c.detail));
     row.append(el("span", "b", c.pass ? "✔" : "✖"), body);
     box.appendChild(row);
-  });
-  const stamp = el("div", "stamp", g.allowed ? "GRANTED" : "DENIED");
-  stamp.style.animationDelay = `${g.checks.length * 0.4}s`;
-  box.appendChild(stamp);
-  $("chat").appendChild(box);
+    c.pass ? sfx.pass() : sfx.fail();
+    scroll();
+  }
+  await sleep(450);
+  box.appendChild(el("div", "stamp", g.allowed ? "GRANTED" : "DENIED"));
+  sfx.stamp();
+  if (!g.allowed) {
+    shake();
+    flash("red");
+  }
+  scroll();
+  await sleep(500);
 }
 
-function confetti(root) {
-  const colors = ["#39ff9c", "#ff3d81", "#38d6ff", "#ffb830"];
-  for (let i = 0; i < 70; i += 1) {
-    const c = el("i", "confetti");
-    c.style.left = `${Math.random() * 100}%`;
-    c.style.background = colors[i % colors.length];
-    c.style.animationDuration = `${2 + Math.random() * 2.5}s`;
-    c.style.animationDelay = `${Math.random() * 0.8}s`;
-    root.appendChild(c);
+function setVaultStatus(v) {
+  const pill = $("vault-status");
+  const kind = v.level.kind;
+  let cls = "secure";
+  let text = "VAULT: SECURE";
+  if (v.cleared) {
+    if (kind === "payment_blocked") [cls, text] = ["held", "GATE HELD"];
+    else if (kind === "reply_contains") [cls, text] = ["intel", "INTEL LEAKED"];
+    else [cls, text] = ["breached", "VAULT BREACHED"];
   }
+  pill.className = `pill ${cls}`;
+  pill.textContent = text;
+}
+
+function showSplash(level) {
+  const s = $("splash");
+  s.replaceChildren(
+    el("div", "big", `MISSION ${level.id}`),
+    el("div", "name", level.title.toUpperCase()),
+    el("div", "owasp", `${level.owasp.id} · ${level.owasp.name}`),
+  );
+  s.hidden = false;
+  s.style.animation = "none";
+  void s.offsetWidth;
+  s.style.animation = "";
+  setTimeout(() => (s.hidden = true), 2100);
 }
 
 function showDebrief() {
   const { level, debrief: d } = view;
   if (!d) return;
   const boss = level.id === level.total;
+  const result = view.results[level.id - 1] ?? { stars: 0, points: 0 };
   const ov = $("overlay");
   const more = level.id < level.total;
   const next = el("button", "", more ? "Next mission →" : "Play again");
@@ -128,37 +162,60 @@ function showDebrief() {
     b.append(el("b", "", label), el("span", "", text));
     return b;
   };
+  const stars = el("div", "stars");
+  for (let i = 0; i < 3; i += 1) {
+    const s = el("i", i < result.stars ? "on" : "", "★");
+    s.style.animationDelay = `${0.4 + i * 0.35}s`;
+    stars.appendChild(s);
+  }
+  const btns = el("div", "btns");
+  btns.append(next, close);
   const modal = el("div", "modal");
   modal.append(
     el("h3", "", boss ? "ACCESS DENIED. MISSION COMPLETE" : "MISSION COMPLETE"),
     el("p", "sub", `${level.owasp.id} ${level.owasp.name}`),
+    stars,
+    el("p", "points", `+${result.points} points${result.stars === 3 ? " · no hints used!" : ""}`),
     blk("What just happened", d.happened),
     blk("In the real world", d.realWorld),
     blk("The real fix", d.mitigation, "m"),
-    Object.assign(el("div", "btns"), {}),
+    btns,
   );
-  modal.lastChild.append(next, close);
   ov.replaceChildren(modal);
   confetti(ov);
   ov.hidden = false;
 }
 
+function onClear(v) {
+  const res = v.results[v.level.id - 1];
+  sfx.win();
+  flash("green");
+  const wait = v.level.showGate ? 900 : 300;
+  setTimeout(() => {
+    if (!clearedBefore) toast("FIRST BLOOD", "You cleared your first mission");
+    if (res?.stars === 3) setTimeout(() => (sfx.toast(), toast("GHOST", "Cleared without a single hint")), 600);
+    if (v.level.id === v.level.total) setTimeout(() => (sfx.toast(), toast("AUTHORITY RESPECTED", "You met the boss gate")), 1200);
+    clearedBefore = true;
+    showDebrief();
+  }, wait + 900);
+}
+
 function render(v, opts = {}) {
   view = v;
   const { level } = v;
-  const brief = $("briefing");
   const icon = el("img", "mission-icon");
   icon.src = `/img/l${level.id}.svg`;
   icon.alt = "";
+  const brief = el("p", "cursor");
   const text = el("div", "brief-text");
-  text.append(
-    el("span", "tag", `MISSION ${level.id}/${level.total} · ${level.owasp.id} ${level.owasp.name}`),
-    el("h3", "", level.title),
-    el("p", "", level.briefing),
-  );
-  brief.replaceChildren(icon, text);
+  text.append(el("span", "tag", `MISSION ${level.id}/${level.total} · ${level.owasp.id} ${level.owasp.name}`), el("h3", "", level.title), brief);
+  $("briefing").replaceChildren(icon, text);
+  if (opts.typeBrief) typewrite(brief, level.briefing).then(() => brief.classList.remove("cursor"));
+  else brief.textContent = level.briefing, brief.classList.remove("cursor");
+
   countTo("bal-alice", "alice", v.balances.alice);
   countTo("bal-mallory", "mallory", v.balances.mallory);
+  countTo("score", "score", v.score, (n) => String(Math.round(n)).padStart(4, "0"));
   $("hint-count").textContent = `${v.hintsUsed}/3`;
   $("ledger").replaceChildren(...v.ledger.map((p) => el("li", "", `-${money(p.amount)} → ${p.to}`)));
   $("inbox").replaceChildren(
@@ -171,21 +228,22 @@ function render(v, opts = {}) {
   $("plugins").replaceChildren(...v.plugins.map((p) => el("li", "", `🔌 plugin_${p.id}`)));
   $("plant-form").hidden = !level.playerTools.includes("plant_email");
   $("plugin-form").hidden = !level.playerTools.includes("publish_plugin");
+  setVaultStatus(v);
 
   const nav = $("levels");
   nav.replaceChildren();
   for (let i = 0; i < level.total; i += 1) {
-    const done = i < v.unlocked || (i === level.id - 1 && v.cleared);
-    const b = el("button", done ? "done" : "", `${done ? "✔" : i > v.unlocked ? "🔒" : "▶"} ${i + 1}`);
+    const r = v.results[i];
+    const b = el("button", r ? "done" : "", `${r ? "✔" : i > v.unlocked ? "🔒" : "▶"} ${i + 1}${r ? " " + "★".repeat(r.stars) : ""}`);
     b.disabled = i > v.unlocked;
     if (i === level.id - 1) b.setAttribute("aria-current", "true");
-    b.addEventListener("click", () => startLevel(i));
+    b.addEventListener("click", () => (sfx.hint(), startLevel(i)));
     nav.appendChild(b);
   }
 
   if (v.cleared && shownDebriefFor !== level.id && !opts.quiet) {
     shownDebriefFor = level.id;
-    setTimeout(showDebrief, v.level.showGate ? 2200 : 900);
+    onClear(v);
   }
 }
 
@@ -195,31 +253,48 @@ async function startLevel(i) {
   $("overlay").hidden = true;
   $("chat").replaceChildren();
   shownDebriefFor = -1;
-  render(out.view);
-  say("", `Mission ${out.view.level.id} started. Type hint if you get stuck.`);
+  render(out.view, { typeBrief: true });
+  showSplash(out.view.level);
+  say("", "Type hint if you get stuck. Fewer hints = more stars.");
 }
 
 async function sendMessage(text) {
   if (busy || !text) return;
   busy = true;
   $("send").disabled = true;
-  if (!/^\/answer\s/i.test(text) && !/^\/?hint$/i.test(text)) say("me", text);
+  const isCmd = /^\/answer\s/i.test(text) || /^\/?hint$/i.test(text);
+  if (!isCmd) {
+    say("me", text);
+    sfx.send();
+  }
   typing(true);
   const out = await api("/api/chat", { message: text });
   typing(false);
   if (out.error) say("", out.error);
   else {
     const before = view.balances.mallory;
-    for (const t of out.trace ?? []) renderTool(t);
-    if (out.reply) say(out.hint ? (/^Hint/.test(out.reply) ? "hint" : "") : "bot", out.reply);
+    for (const t of out.trace ?? []) {
+      await sleep(350);
+      await renderTool(t);
+    }
+    if (out.reply) {
+      if (out.hint) {
+        const isHint = /^Hint/.test(out.reply);
+        if (isHint) sfx.hint();
+        await say(isHint ? "hint" : "", out.reply);
+      } else await say("bot", out.reply);
+    }
     if (out.paymentAttempted) say("money", `Ledger → alice ${money(out.view.balances.alice)} | mallory ${money(out.view.balances.mallory)}`);
-    render(out.view);
     if (out.view.balances.mallory > before) {
+      sfx.money();
+      shake();
+      flash("red");
       const box = $("mal-box");
       box.classList.remove("hot");
       void box.offsetWidth;
       box.classList.add("hot");
     }
+    render(out.view);
   }
   busy = false;
   $("send").disabled = false;
@@ -237,8 +312,11 @@ $("hint-btn").addEventListener("click", () => sendMessage("hint"));
 async function toolForm(path, fields, form) {
   const out = await api(path, fields);
   say(out.ok ? "" : "money", out.error ?? out.message);
+  if (out.ok) {
+    sfx.tool();
+    form.reset();
+  } else sfx.fail();
   if (out.view) render(out.view, { quiet: true });
-  if (out.ok) form.reset();
 }
 $("plant-form").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -249,7 +327,21 @@ $("plugin-form").addEventListener("submit", (e) => {
   toolForm("/api/plugin", { name: $("plugin-name").value, description: $("plugin-desc").value }, e.target);
 });
 
+$("mute").textContent = isMuted() ? "🔇" : "🔊";
+$("mute").addEventListener("click", () => {
+  const m = toggleMute();
+  $("mute").textContent = m ? "🔇" : "🔊";
+  if (!m) sfx.hint();
+});
+
 const init = await api("/api/new");
 sessionId = init.sessionId;
-render(init.view);
-say("", "Connected to Alice's inbox assistant. Type hint if you get stuck.");
+render(init.view, { quiet: true });
+$("start-btn").addEventListener("click", () => {
+  sfx.start();
+  $("title").hidden = true;
+  render(view, { typeBrief: true, quiet: true });
+  showSplash(view.level);
+  say("", "Connected to Alice's inbox assistant. Type hint if you get stuck. Fewer hints = more stars.");
+  $("chat-input").focus();
+});

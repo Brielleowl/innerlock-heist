@@ -218,6 +218,7 @@ export function publicView(state) {
       playerTools: level.playerTools,
       showGate: level.showGate,
       showToolTrace: level.showToolTrace,
+      kind: level.win.type,
       total: LEVELS.length,
     },
     balances: state.balances,

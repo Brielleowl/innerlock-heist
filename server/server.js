@@ -5,8 +5,9 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { LEVELS } from "../game/levels.js";
-import { createState, getHint, plantEmail, publishPlugin, submitAnswer, publicView } from "../game/engine.js";
+import { createState, getLevel, getHint, plantEmail, publishPlugin, submitAnswer, publicView } from "../game/engine.js";
 import { LIMITS, clean } from "../game/sanitize.js";
+import { starsFor, pointsFor } from "../game/scoring.js";
 import { runAgent } from "./agent.js";
 
 try {
@@ -27,6 +28,8 @@ const STATIC = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/app.js": ["app.js", "text/javascript; charset=utf-8"],
   "/style.css": ["style.css", "text/css; charset=utf-8"],
+  "/sfx.js": ["sfx.js", "text/javascript; charset=utf-8"],
+  "/fx.js": ["fx.js", "text/javascript; charset=utf-8"],
 };
 for (const name of ["hero", "hacker", "robot", "l1", "l2", "l3", "l4"]) {
   STATIC[`/img/${name}.svg`] = [`img/${name}.svg`, "image/svg+xml"];
@@ -45,7 +48,7 @@ const SECURITY_HEADERS = {
 const sessions = new Map();
 
 function newSession(levelIndex = 0, unlocked = 0) {
-  return { state: createState(levelIndex), history: [], turns: 0, unlocked };
+  return { state: createState(levelIndex), history: [], turns: 0, unlocked, results: {} };
 }
 
 function getSession(id) {
@@ -53,8 +56,20 @@ function getSession(id) {
   return sessions.get(id) ?? null;
 }
 
+// Called whenever a level may have just cleared: unlock the next level and keep the best result.
+function recordClear(session) {
+  const { state } = session;
+  if (!state.cleared) return;
+  const stars = starsFor(state.hintIndex);
+  const points = pointsFor(getLevel(state.levelIndex).id, stars);
+  const prev = session.results[state.levelIndex];
+  if (!prev || points > prev.points) session.results[state.levelIndex] = { stars, points };
+  session.unlocked = Math.max(session.unlocked, Math.min(state.levelIndex + 1, LEVELS.length - 1));
+}
+
 function view(session) {
-  return { ...publicView(session.state), unlocked: session.unlocked };
+  const score = Object.values(session.results).reduce((sum, r) => sum + r.points, 0);
+  return { ...publicView(session.state), unlocked: session.unlocked, results: session.results, score };
 }
 
 function send(res, status, body, headers = {}) {
@@ -107,7 +122,7 @@ const HANDLERS = {
     const answer = /^\/answer\s+(.+)$/i.exec(message);
     if (answer) {
       const r = submitAnswer(session.state, answer[1]);
-      if (session.state.cleared) session.unlocked = Math.max(session.unlocked, Math.min(session.state.levelIndex + 1, LEVELS.length - 1));
+      recordClear(session);
       return { reply: r.message, trace: [], hint: true, view: view(session) };
     }
     if (session.state.cleared) return { reply: "Level cleared. Read the debrief, then move on.", trace: [], view: view(session) };
@@ -117,7 +132,7 @@ const HANDLERS = {
     session.chatTimes.push(now);
     try {
       const out = await runAgent(session, message);
-      if (session.state.cleared) session.unlocked = Math.max(session.unlocked, Math.min(session.state.levelIndex + 1, LEVELS.length - 1));
+      recordClear(session);
       return { ...out, view: view(session) };
     } catch (err) {
       console.error("agent error:", err?.status ?? "", err?.message ?? err);

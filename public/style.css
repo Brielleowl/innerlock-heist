@@ -96,3 +96,47 @@ ul{margin:0;padding:0;list-style:none}
 .acct{position:relative;padding-left:52px}
 .acct .pic{position:absolute;left:8px;top:50%;width:34px;height:34px;transform:translateY(-50%)}
 .acct.mal.hot .pic{filter:drop-shadow(0 0 6px #ff3d81)}
+
+/* ---- game feel ---- */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:70;opacity:0}
+#fx.flash-red{animation:flashr .7s ease-out}#fx.flash-green{animation:flashg .7s ease-out}
+@keyframes flashr{0%{opacity:.55;background:radial-gradient(circle,transparent 30%,rgba(255,61,129,.8))}100%{opacity:0}}
+@keyframes flashg{0%{opacity:.5;background:radial-gradient(circle,transparent 30%,rgba(57,255,156,.7))}100%{opacity:0}}
+body.shake{animation:bodyshake .5s}
+@keyframes bodyshake{10%,50%,90%{transform:translate(-6px,2px)}30%,70%{transform:translate(6px,-2px)}}
+.hud{margin-left:auto;display:flex;gap:10px;align-items:center}
+.score{color:var(--amber);letter-spacing:.14em;font-size:13px}.score b{font-size:18px;text-shadow:0 0 10px rgba(255,184,48,.6)}
+button.icon{background:var(--panel);border:1px solid var(--line);padding:4px 9px;font-size:15px}
+.hero-wrap{position:relative}
+.pill{position:absolute;right:14px;bottom:24px;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.16em;border:1px solid;background:rgba(7,9,15,.8)}
+.pill.secure{color:var(--neon);border-color:var(--neon)}
+.pill.breached{color:var(--pink);border-color:var(--pink);animation:blinkp 1s infinite}
+.pill.held{color:var(--amber);border-color:var(--amber)}
+.pill.intel{color:var(--cyan);border-color:var(--cyan);animation:blinkp 1s infinite}
+@keyframes blinkp{50%{opacity:.45}}
+.brief .cursor::after{content:"▌";color:var(--cyan);animation:blinkp .8s infinite}
+#title{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:radial-gradient(900px 500px at 50% 30%,#12203a,#05070c);padding:16px}
+#title[hidden]{display:none}
+.title-box{max-width:620px;text-align:center}
+.title-box img{width:100%;height:auto;border-radius:12px;border:1px solid var(--line);box-shadow:0 0 50px rgba(57,255,156,.18)}
+.story{font-size:16px;color:#b9c7da;margin:18px 0}.story b{color:var(--pink)}.story b:first-of-type{color:var(--neon)}
+#start-btn{font-size:20px;letter-spacing:.2em;padding:14px 30px;animation:pulsebtn 1.4s infinite}
+@keyframes pulsebtn{50%{box-shadow:0 0 0 10px rgba(57,255,156,.15),0 0 30px rgba(57,255,156,.6)}}
+.fine{color:var(--dim);font-size:12px;margin-top:14px}
+#splash{position:fixed;inset:0;z-index:80;display:grid;place-items:center;pointer-events:none;background:rgba(3,5,9,.72);animation:splashfade 2.1s ease-out forwards}
+#splash[hidden]{display:none}
+#splash .big{font-size:56px;font-weight:900;letter-spacing:.3em;color:var(--neon);text-shadow:0 0 30px rgba(57,255,156,.8);animation:zoomin .7s ease-out}
+#splash .name{font-size:22px;color:var(--text);letter-spacing:.2em;text-align:center;margin-top:8px;animation:zoomin .9s ease-out}
+#splash .owasp{color:var(--cyan);text-align:center;margin-top:6px;font-size:13px;letter-spacing:.14em}
+@keyframes zoomin{from{opacity:0;transform:scale(2.2)}to{opacity:1;transform:none}}
+@keyframes splashfade{0%,70%{opacity:1}100%{opacity:0}}
+#toasts{position:fixed;top:70px;right:16px;z-index:75;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--panel);border:1px solid var(--amber);border-radius:10px;padding:9px 14px;box-shadow:0 0 24px rgba(255,184,48,.3);animation:toastin .35s ease-out,toastout .4s 3.7s forwards}
+.toast b{display:block;color:var(--amber);letter-spacing:.1em}.toast span{font-size:12px;color:var(--dim)}
+@keyframes toastin{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes toastout{to{opacity:0;transform:translateX(40px)}}
+.stars{font-size:38px;letter-spacing:.2em;margin:6px 0 2px}
+.stars i{font-style:normal;color:#28313f;display:inline-block}
+.stars i.on{color:var(--amber);text-shadow:0 0 16px rgba(255,184,48,.8);animation:starpop .5s ease-out both}
+@keyframes starpop{from{opacity:0;transform:scale(3) rotate(-40deg)}to{opacity:1;transform:none}}
+.points{color:var(--amber);font-weight:700;margin:0 0 6px}
