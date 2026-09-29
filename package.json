@@ -1,0 +1,17 @@
+{
+  "name": "innerlock-heist",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Innerlock Heist - a game that teaches AI agent security by letting you attack one.",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.129.0"
+  }
+}

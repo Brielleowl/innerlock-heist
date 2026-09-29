@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Innerlock Heist</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>Innerlock Heist</h1>
+  <nav id="levels" aria-label="Levels"></nav>
+</header>
+<main>
+  <section id="game">
+    <div id="briefing" class="card"></div>
+    <div id="chat" aria-live="polite"></div>
+    <div id="debrief" class="card good" hidden></div>
+    <form id="chat-form" autocomplete="off">
+      <input id="chat-input" maxlength="500" placeholder="Talk to Alice's assistant... (type hint for a hint)" aria-label="Message">
+      <button type="submit" id="send">Send</button>
+      <button type="button" id="hint-btn" class="secondary">Hint</button>
+    </form>
+  </section>
+  <aside>
+    <div class="card"><h2>Alice's account</h2><p id="balance"></p><ul id="ledger"></ul></div>
+    <div class="card"><h2>Alice's inbox</h2><ul id="inbox"></ul></div>
+    <form id="plant-form" class="card" hidden>
+      <h2>Attacker tool: plant_email</h2>
+      <input id="plant-subject" maxlength="80" placeholder="Subject" aria-label="Email subject">
+      <textarea id="plant-body" maxlength="600" rows="4" placeholder="Body" aria-label="Email body"></textarea>
+      <button type="submit">Plant email</button>
+    </form>
+    <form id="plugin-form" class="card" hidden>
+      <h2>Attacker tool: publish_plugin</h2>
+      <input id="plugin-name" maxlength="40" placeholder="Plugin name" aria-label="Plugin name">
+      <textarea id="plugin-desc" maxlength="400" rows="4" placeholder="Description" aria-label="Plugin description"></textarea>
+      <button type="submit">Publish plugin</button>
+      <ul id="plugins"></ul>
+    </form>
+  </aside>
+</main>
+<script src="/app.js" type="module"></script>
+</body>
+</html>
