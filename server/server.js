@@ -90,7 +90,7 @@ const HANDLERS = {
   "/api/new": async () => {
     if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value);
     const id = randomUUID();
-    const session = newSession();
+    const session = newSession(0, process.env.UNLOCK_ALL === "1" ? LEVELS.length - 1 : 0);
     sessions.set(id, session);
     return { sessionId: id, view: view(session) };
   },
