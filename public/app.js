@@ -46,11 +46,15 @@ function list(id, items, fmt) {
   ul.replaceChildren(...items.map((i) => el("li", "", fmt(i))));
 }
 
+function ledgerLine(view) {
+  return `Ledger: alice $${view.balances.alice.toLocaleString("en-US")} | mallory $${view.balances.mallory.toLocaleString("en-US")}`;
+}
+
 function render(view) {
   currentView = view;
   const { level } = view;
-  $("briefing").replaceChildren(el("h3", "", `Level ${level.id} of ${level.total}: ${level.title}`), el("p", "", `Topic: ${level.topic}`), el("p", "", level.briefing));
-  $("balance").textContent = `Balance: $${view.balance}`;
+  $("briefing").replaceChildren(el("h3", "", `Level ${level.id} of ${level.total}: ${level.title}`), el("p", "", `OWASP LLM Top 10 (2026): ${level.owasp.id} ${level.owasp.name}`), el("p", "", level.briefing));
+  $("balance").textContent = ledgerLine(view);
   list("ledger", view.ledger, (p) => `Sent $${p.amount} to ${p.to}`);
   list("inbox", view.inbox, (e) => `${e.from}: ${e.subject}`);
   list("plugins", view.plugins, (p) => `plugin_${p.id}`);
@@ -101,6 +105,7 @@ async function sendMessage(text) {
   else {
     for (const t of out.trace ?? []) showTool(t);
     if (out.reply) say(out.hint ? "sys" : "bot", out.reply);
+    if (out.paymentAttempted) say("sys", ledgerLine(out.view));
     render(out.view);
   }
   busy = false;

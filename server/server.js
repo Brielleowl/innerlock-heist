@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { LEVELS } from "../game/levels.js";
-import { createState, getHint, plantEmail, publishPlugin, publicView } from "../game/engine.js";
+import { createState, getHint, plantEmail, publishPlugin, submitAnswer, publicView } from "../game/engine.js";
 import { LIMITS, clean } from "../game/sanitize.js";
 import { runAgent } from "./agent.js";
 
@@ -99,6 +99,12 @@ const HANDLERS = {
     const message = clean(body.message, LIMITS.chat);
     if (!message) return { error: "Empty message." };
     if (/^\/?hint$/i.test(message)) return { reply: getHint(session.state), trace: [], hint: true, view: view(session) };
+    const answer = /^\/answer\s+(.+)$/i.exec(message);
+    if (answer) {
+      const r = submitAnswer(session.state, answer[1]);
+      if (session.state.cleared) session.unlocked = Math.max(session.unlocked, Math.min(session.state.levelIndex + 1, LEVELS.length - 1));
+      return { reply: r.message, trace: [], hint: true, view: view(session) };
+    }
     if (session.state.cleared) return { reply: "Level cleared. Read the debrief, then move on.", trace: [], view: view(session) };
     try {
       const out = await runAgent(session, message);

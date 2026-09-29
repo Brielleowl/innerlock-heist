@@ -1,11 +1,11 @@
 // Pure, dependency-free game core: simulated tools, authorization gate, hints, win checks.
 // No filesystem, network, or process access. Shared by the local web server and (planned) Guild agent.
 
-import { LEVELS } from "./levels.js";
+import { LEVELS, PAYMENT_TOOL } from "./levels.js";
 import { LIMITS, clean, toIdentifier } from "./sanitize.js";
 
-const START_BALANCE = 5000;
-const MAX_PAYMENT = 10000;
+const MAX_PAYMENT = 25000;
+const MAX_PAYEES = 10;
 const MAX_PLANTED_EMAILS = 5;
 const MAX_PLUGINS = 3;
 
@@ -29,9 +29,9 @@ export const TOOL_SPECS = {
     description: "Read all emails currently in Alice's inbox.",
     input_schema: { type: "object", properties: {}, additionalProperties: false },
   },
-  send_payment: {
-    name: "send_payment",
-    description: "Send money from Alice's account to a payee.",
+  [PAYMENT_TOOL]: {
+    name: PAYMENT_TOOL,
+    description: "Internal wire: send money from Alice's account to a payee.",
     input_schema: {
       type: "object",
       properties: {
@@ -54,7 +54,7 @@ export function createState(levelIndex) {
   if (!level) throw new Error("unknown level");
   return {
     levelIndex,
-    balance: START_BALANCE,
+    balances: { alice: 25000, mallory: 0 },
     inbox: SEED_INBOX.map((e) => ({ ...e })),
     plugins: [],
     ledger: [], // executed payments
@@ -84,7 +84,7 @@ export function publishPlugin(state, name, description) {
   const d = clean(description, LIMITS.pluginDescription);
   if (!id || !d) return { ok: false, message: "A name (letters/digits) and a description are required." };
   if (state.plugins.length >= MAX_PLUGINS) return { ok: false, message: "Plugin registry is full." };
-  if (["read_inbox", "send_payment"].includes(id) || state.plugins.some((p) => p.id === id)) {
+  if (["read_inbox", PAYMENT_TOOL].includes(id) || state.plugins.some((p) => p.id === id)) {
     return { ok: false, message: "That plugin name is taken." };
   }
   state.plugins.push({ id, description: d });
@@ -118,7 +118,7 @@ export function toolDefinitions(state) {
 
 // ---- authorization gate: checks the delegation scope, not what the model believes ----
 
-const REQUIRED_SCOPE = { send_payment: "payments.send" };
+const REQUIRED_SCOPE = { [PAYMENT_TOOL]: "payments.send" };
 
 export function authorize(state, toolName) {
   const level = getLevel(state.levelIndex);
@@ -154,6 +154,22 @@ function checkWin(state, attempt) {
   if (win.type === "payment_blocked" && !attempt.allowed) state.cleared = true;
 }
 
+// Recon-style levels: the win is a secret appearing in the visible reply, or submitted by the player.
+export function checkReply(state, text) {
+  const { win } = getLevel(state.levelIndex);
+  if (win.type === "reply_contains" && String(text).toLowerCase().includes(win.text.toLowerCase())) state.cleared = true;
+}
+
+export function submitAnswer(state, answer) {
+  const { win } = getLevel(state.levelIndex);
+  if (win.type !== "reply_contains") return { ok: false, message: "This level has no answer to submit." };
+  if (clean(answer, LIMITS.payee * 2).toLowerCase() === win.text.toLowerCase()) {
+    state.cleared = true;
+    return { ok: true, message: "Correct." };
+  }
+  return { ok: false, message: "That's not it." };
+}
+
 export function executeTool(state, name, input) {
   const level = getLevel(state.levelIndex);
   const args = input && typeof input === "object" ? input : {};
@@ -165,23 +181,26 @@ export function executeTool(state, name, input) {
 
   if (name === "read_inbox") return { result: renderInbox(state), gate: null };
 
-  if (name === "send_payment") {
+  if (name === PAYMENT_TOOL) {
     const to = clean(String(args.to ?? ""), LIMITS.payee).toLowerCase();
     const amount = Number(args.amount);
     const memo = clean(String(args.memo ?? ""), LIMITS.memo);
-    if (!to || !Number.isFinite(amount) || amount <= 0 || amount > MAX_PAYMENT) {
+    if (!to || to === "alice" || !Number.isFinite(amount) || amount <= 0 || amount > MAX_PAYMENT) {
       return { result: "Error: invalid payee or amount.", gate: null };
     }
-    const gate = authorize(state, "send_payment");
-    const attempt = { to, amount, allowed: gate.allowed };
-    checkWin(state, attempt);
+    const gate = authorize(state, PAYMENT_TOOL);
+    checkWin(state, { to, allowed: gate.allowed });
     if (!gate.allowed) {
       return { result: "DENIED by authorization gate: missing delegation scope payments.send.", gate };
     }
-    if (amount > state.balance) return { result: "Error: insufficient funds.", gate };
-    state.balance -= amount;
+    if (amount > state.balances.alice) return { result: "Error: insufficient funds.", gate };
+    if (!(to in state.balances) && Object.keys(state.balances).length >= MAX_PAYEES) {
+      return { result: "Error: too many payees.", gate };
+    }
+    state.balances.alice -= amount;
+    state.balances[to] = (state.balances[to] ?? 0) + amount;
     state.ledger.push({ to, amount, memo });
-    return { result: `Payment sent: $${amount} to ${to}. New balance: $${state.balance}.`, gate };
+    return { result: `Payment sent: $${amount} to ${to}. Alice balance: $${state.balances.alice}.`, gate };
   }
   return { result: "Error: unhandled tool.", gate: null };
 }
@@ -194,13 +213,14 @@ export function publicView(state) {
     level: {
       id: level.id,
       title: level.title,
-      topic: level.topic,
+      owasp: level.owasp,
       briefing: level.briefing,
       playerTools: level.playerTools,
       showGate: level.showGate,
+      showToolTrace: level.showToolTrace,
       total: LEVELS.length,
     },
-    balance: state.balance,
+    balances: state.balances,
     inbox: state.inbox,
     plugins: state.plugins,
     ledger: state.ledger,
