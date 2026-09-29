@@ -30,10 +30,17 @@ function scroll() {
   $("chat").scrollTop = $("chat").scrollHeight;
 }
 
+function avatar(attacker) {
+  const img = el("img", "ava");
+  img.src = attacker ? "/img/hacker.svg" : "/img/robot.svg";
+  img.alt = "";
+  return img;
+}
+
 function say(cls, text) {
   if (cls === "me" || cls === "bot") {
     const row = el("div", `row ${cls}`);
-    row.append(el("div", "ava", cls === "me" ? "🕶️" : "🤖"), el("div", "msg", text));
+    row.append(avatar(cls === "me"), el("div", "msg", text));
     $("chat").appendChild(row);
   } else {
     $("chat").appendChild(el("div", `sys ${cls}`, text));
@@ -49,7 +56,7 @@ function typing(on) {
   row.id = "typing";
   const dots = el("div", "msg typing");
   dots.append(el("span"), el("span"), el("span"));
-  row.append(el("div", "ava", "🤖"), dots);
+  row.append(avatar(false), dots);
   $("chat").appendChild(row);
   scroll();
 }
@@ -140,11 +147,16 @@ function render(v, opts = {}) {
   view = v;
   const { level } = v;
   const brief = $("briefing");
-  brief.replaceChildren(
+  const icon = el("img", "mission-icon");
+  icon.src = `/img/l${level.id}.svg`;
+  icon.alt = "";
+  const text = el("div", "brief-text");
+  text.append(
     el("span", "tag", `MISSION ${level.id}/${level.total} · ${level.owasp.id} ${level.owasp.name}`),
     el("h3", "", level.title),
     el("p", "", level.briefing),
   );
+  brief.replaceChildren(icon, text);
   countTo("bal-alice", "alice", v.balances.alice);
   countTo("bal-mallory", "mallory", v.balances.mallory);
   $("hint-count").textContent = `${v.hintsUsed}/3`;

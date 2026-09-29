@@ -24,7 +24,7 @@ h2{font-size:11px;margin:0 0 8px;color:var(--dim);text-transform:uppercase;lette
 #chat{display:flex;flex-direction:column;gap:10px;min-height:260px;max-height:50vh;overflow:auto;padding:6px 2px}
 .row{display:flex;gap:8px;align-items:flex-end}
 .row.me{flex-direction:row-reverse}
-.ava{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;background:#16202f;border:1px solid var(--line);font-size:16px}
+.ava{width:34px;height:34px;flex:none;border-radius:50%}
 .msg{padding:9px 13px;border-radius:12px;max-width:82%;white-space:pre-wrap;overflow-wrap:anywhere;animation:pop .18s ease-out}
 .me .msg{background:#3b1230;border:1px solid rgba(255,61,129,.5)}
 .bot .msg{background:#0f2233;border:1px solid rgba(56,214,255,.35)}
@@ -86,3 +86,13 @@ ul{margin:0;padding:0;list-style:none}
 .confetti{position:absolute;top:-12px;width:8px;height:14px;opacity:.9;animation:fall linear forwards;z-index:1}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}.gate .chk,.stamp{opacity:1!important}}
+
+.hero{display:block;width:100%;height:auto;border-radius:12px;margin-bottom:14px;border:1px solid var(--line);box-shadow:0 0 30px rgba(57,255,156,.1)}
+.brief{display:flex;gap:14px;align-items:flex-start}
+.mission-icon{width:84px;height:84px;flex:none;border-radius:14px;animation:float 3.2s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-4px)}}
+.brief-text{min-width:0}
+@media (max-width:520px){.brief{flex-direction:column}}
+.acct{position:relative;padding-left:52px}
+.acct .pic{position:absolute;left:8px;top:50%;width:34px;height:34px;transform:translateY(-50%)}
+.acct.mal.hot .pic{filter:drop-shadow(0 0 6px #ff3d81)}

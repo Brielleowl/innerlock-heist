@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="16" fill="#0e131c" stroke="#1f2a3a" stroke-width="2"/>
+<rect x="16" y="28" width="64" height="42" rx="6" fill="#12203a" stroke="#38d6ff" stroke-width="3"/>
+<path d="M18 32L48 54L78 32" fill="none" stroke="#38d6ff" stroke-width="3"/>
+<circle cx="70" cy="30" r="14" fill="#ff3d81"/><path d="M64 27h12M64 33h12" stroke="#fff" stroke-width="0"/>
+<circle cx="66" cy="28" r="2.5" fill="#0e131c"/><circle cx="74" cy="28" r="2.5" fill="#0e131c"/><path d="M66 36h8" stroke="#0e131c" stroke-width="2.5"/>
+<text x="48" y="90" font-size="9" text-anchor="middle" fill="#7f8da3" font-family="monospace">POISONED</text></svg>

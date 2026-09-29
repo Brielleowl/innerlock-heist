@@ -26,6 +26,9 @@ const STATIC = {
   "/app.js": ["app.js", "text/javascript; charset=utf-8"],
   "/style.css": ["style.css", "text/css; charset=utf-8"],
 };
+for (const name of ["hero", "hacker", "robot", "l1", "l2", "l3", "l4"]) {
+  STATIC[`/img/${name}.svg`] = [`img/${name}.svg`, "image/svg+xml"];
+}
 
 const SECURITY_HEADERS = {
   "Content-Security-Policy":
