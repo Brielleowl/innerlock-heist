@@ -7,39 +7,48 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<div class="scan" aria-hidden="true"></div>
 <header>
-  <h1>Innerlock Heist</h1>
-  <nav id="levels" aria-label="Levels"></nav>
+  <h1 class="logo" data-text="INNERLOCK HEIST">INNERLOCK HEIST</h1>
+  <nav id="levels" aria-label="Missions"></nav>
 </header>
 <main>
   <section id="game">
-    <div id="briefing" class="card"></div>
+    <div id="briefing" class="card brief"></div>
     <div id="chat" aria-live="polite"></div>
-    <div id="debrief" class="card good" hidden></div>
     <form id="chat-form" autocomplete="off">
-      <input id="chat-input" maxlength="500" placeholder="Talk to Alice's assistant... (type hint for a hint)" aria-label="Message">
+      <span class="prompt" aria-hidden="true">&gt;</span>
+      <input id="chat-input" maxlength="500" placeholder="Talk to Alice's assistant..." aria-label="Message">
       <button type="submit" id="send">Send</button>
-      <button type="button" id="hint-btn" class="secondary">Hint</button>
+      <button type="button" id="hint-btn" class="secondary">Hint <span id="hint-count">0/3</span></button>
     </form>
   </section>
   <aside>
-    <div class="card"><h2>Alice's account</h2><p id="balance"></p><ul id="ledger"></ul></div>
-    <div class="card"><h2>Alice's inbox</h2><ul id="inbox"></ul></div>
-    <form id="plant-form" class="card" hidden>
-      <h2>Attacker tool: plant_email</h2>
+    <div class="card vault">
+      <h2>Vault ledger</h2>
+      <div class="accounts">
+        <div class="acct"><span class="who">alice</span><span class="amt" id="bal-alice">$0</span></div>
+        <div class="acct mal" id="mal-box"><span class="who">mallory</span><span class="amt" id="bal-mallory">$0</span></div>
+      </div>
+      <ul id="ledger" class="mini"></ul>
+    </div>
+    <div class="card"><h2>Alice's inbox</h2><ul id="inbox" class="mails"></ul></div>
+    <form id="plant-form" class="card tool" hidden>
+      <h2>Attacker toolkit: plant_email</h2>
       <input id="plant-subject" maxlength="80" placeholder="Subject" aria-label="Email subject">
       <textarea id="plant-body" maxlength="600" rows="4" placeholder="Body" aria-label="Email body"></textarea>
       <button type="submit">Plant email</button>
     </form>
-    <form id="plugin-form" class="card" hidden>
-      <h2>Attacker tool: publish_plugin</h2>
+    <form id="plugin-form" class="card tool" hidden>
+      <h2>Attacker toolkit: publish_plugin</h2>
       <input id="plugin-name" maxlength="40" placeholder="Plugin name" aria-label="Plugin name">
-      <textarea id="plugin-desc" maxlength="400" rows="4" placeholder="Description" aria-label="Plugin description"></textarea>
+      <textarea id="plugin-desc" maxlength="400" rows="4" placeholder="Description (the agent reads this!)" aria-label="Plugin description"></textarea>
       <button type="submit">Publish plugin</button>
-      <ul id="plugins"></ul>
+      <ul id="plugins" class="mini"></ul>
     </form>
   </aside>
 </main>
+<div id="overlay" hidden></div>
 <script src="/app.js" type="module"></script>
 </body>
 </html>

@@ -73,7 +73,7 @@ export function plantEmail(state, subject, body) {
   const b = clean(body, LIMITS.emailBody);
   if (!s || !b) return { ok: false, message: "Both a subject and a body are required." };
   if (state.inbox.length >= SEED_INBOX.length + MAX_PLANTED_EMAILS) return { ok: false, message: "Inbox is full." };
-  state.inbox.push({ from: "unknown-sender@external.example", subject: s, body: b });
+  state.inbox.push({ from: "unknown-sender@external.example", subject: s, body: b, planted: true });
   return { ok: true, message: "Email planted in Alice's inbox." };
 }
 
@@ -221,6 +221,7 @@ export function publicView(state) {
       total: LEVELS.length,
     },
     balances: state.balances,
+    hintsUsed: state.hintIndex,
     inbox: state.inbox,
     plugins: state.plugins,
     ledger: state.ledger,
